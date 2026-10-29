@@ -7,6 +7,7 @@
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const mainImage = $('#mainImage');
+  const imageContainer = $('#mainImageContainer');
   const thumbnails = $('#galleryThumbnails');
   const dots = $('#navIndicator');
   const likeButtons = $$('.detail-like-btn');
@@ -16,6 +17,8 @@
   const quantityInput = $('#quantityInput');
   const quantityPrice = $('#quantityPrice');
   const toast = $('#globalSuccessMessage');
+  let mobileCarousel = null;
+  let carouselSettleTimer = 0;
   let imageIndex = 0;
   let quantity = 1;
 
@@ -113,15 +116,66 @@
     updateQuantity();
   }
 
-  function changeImage(nextIndex) {
+  function changeImage(nextIndex, { moveCarousel = true, scrollThumbnails = true, behavior = 'smooth' } = {}) {
     const count = book.images.length;
     imageIndex = (nextIndex + count) % count;
     mainImage.src = book.images[imageIndex];
     mainImage.alt = `${book.title} — фотография ${imageIndex + 1}`;
     $$('.thumbnail').forEach((thumb, index) => thumb.classList.toggle('active', index === imageIndex));
     $$('.nav-dot').forEach((dot, index) => dot.classList.toggle('active', index === imageIndex));
+    if (moveCarousel && mobileCarousel && window.matchMedia('(max-width: 768px)').matches) {
+      mobileCarousel.scrollTo({ left: (imageIndex + 1) * mobileCarousel.clientWidth, behavior });
+    }
     const activeThumb = $('.thumbnail.active');
-    if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (activeThumb && scrollThumbnails) {
+      activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+
+  function buildMobileCarousel() {
+    if (!imageContainer || book.images.length < 2) return;
+
+    const count = book.images.length;
+    const carousel = document.createElement('div');
+    carousel.className = 'mobile-gallery-carousel';
+    carousel.setAttribute('role', 'region');
+    carousel.setAttribute('aria-label', `${book.title} — фотографии книги`);
+
+    const slides = [
+      { src: book.images[count - 1], imageIndex: count - 1, clone: true },
+      ...book.images.map((src, index) => ({ src, imageIndex: index, clone: false })),
+      { src: book.images[0], imageIndex: 0, clone: true },
+    ];
+
+    slides.forEach((item, trackIndex) => {
+      const slide = document.createElement('div');
+      slide.className = 'mobile-gallery-slide';
+      slide.setAttribute('role', 'group');
+      slide.setAttribute('aria-label', `Фотография ${item.imageIndex + 1} из ${count}`);
+      if (item.clone) slide.setAttribute('aria-hidden', 'true');
+
+      const image = document.createElement('img');
+      image.src = item.src;
+      image.alt = item.clone ? '' : `${book.title} — фотография ${item.imageIndex + 1}`;
+      image.loading = trackIndex <= 2 || trackIndex >= count - 1 ? 'eager' : 'lazy';
+      image.decoding = 'async';
+      image.draggable = false;
+      slide.appendChild(image);
+      carousel.appendChild(slide);
+    });
+
+    const navigation = imageContainer.querySelector('.image-navigation');
+    imageContainer.insertBefore(carousel, navigation);
+    imageContainer.classList.add('has-mobile-gallery');
+    mobileCarousel = carousel;
+    positionMobileCarousel();
+  }
+
+  function positionMobileCarousel(trackIndex = imageIndex + 1) {
+    if (!mobileCarousel || !window.matchMedia('(max-width: 768px)').matches || !mobileCarousel.clientWidth) return;
+    mobileCarousel.classList.add('is-jumping');
+    mobileCarousel.scrollLeft = trackIndex * mobileCarousel.clientWidth;
+    requestAnimationFrame(() => mobileCarousel?.classList.remove('is-jumping'));
   }
 
   function buildGallery() {
@@ -144,6 +198,8 @@
       dot.setAttribute('aria-label', `Показать фотографию ${index + 1}`);
       dots.appendChild(dot);
     });
+
+    buildMobileCarousel();
   }
 
   function goBack() {
@@ -203,15 +259,28 @@
     $('#favoritesIconBtn')?.addEventListener('click', () => { window.location.href = '../favorites.html'; });
     $('#cartIconBtn')?.addEventListener('click', () => { window.location.href = '../cart.html'; });
 
-    let touchStartX = 0;
-    const imageContainer = $('#mainImageContainer');
-    imageContainer?.addEventListener('touchstart', (event) => {
-      touchStartX = event.changedTouches[0].clientX;
+    const settleCarousel = () => {
+      if (!mobileCarousel?.clientWidth || !window.matchMedia('(max-width: 768px)').matches) return;
+      const count = book.images.length;
+      const trackIndex = Math.round(mobileCarousel.scrollLeft / mobileCarousel.clientWidth);
+      if (trackIndex === 0) positionMobileCarousel(count);
+      else if (trackIndex === count + 1) positionMobileCarousel(1);
+    };
+
+    mobileCarousel?.addEventListener('scroll', () => {
+      if (!mobileCarousel?.clientWidth || !window.matchMedia('(max-width: 768px)').matches) return;
+      const count = book.images.length;
+      const trackIndex = Math.max(0, Math.min(count + 1, Math.round(mobileCarousel.scrollLeft / mobileCarousel.clientWidth)));
+      const nextIndex = (trackIndex - 1 + count) % count;
+      if (nextIndex !== imageIndex) {
+        changeImage(nextIndex, { moveCarousel: false, scrollThumbnails: false });
+      }
+      clearTimeout(carouselSettleTimer);
+      carouselSettleTimer = window.setTimeout(settleCarousel, 180);
     }, { passive: true });
-    imageContainer?.addEventListener('touchend', (event) => {
-      const distance = event.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(distance) > 45) changeImage(imageIndex + (distance < 0 ? 1 : -1));
-    }, { passive: true });
+    mobileCarousel?.addEventListener('scrollend', settleCarousel, { passive: true });
+
+    window.addEventListener('resize', () => positionMobileCarousel(), { passive: true });
   }
 
   function initialize() {

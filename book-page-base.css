@@ -109,6 +109,7 @@
         .main-image-container { width: 100%; aspect-ratio: 4/3; border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow-lg); position: relative; background: linear-gradient(135deg, #e8e0d8, #f5f2ee); border: 3px solid rgba(212, 175, 55, 0.4); cursor: pointer; transition: var(--transition); max-height: 600px; }
         .main-image-container:hover { box-shadow: 0 15px 40px rgba(0,0,0,0.3); transform: scale(1.01); }
         .main-image { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .mobile-gallery-carousel { display: none; }
         .gallery-track { width: 100%; height: 100%; display: flex; overflow: hidden; }
         .gallery-slide { flex: 0 0 100%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
         .gallery-slide img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -348,6 +349,42 @@
             .filter-btn { padding: 12px; font-size: 16px; min-width: 48%; }
             .catalog-subtitle { display: none; }
             .main-image-container { max-height: 400px; }
+            .main-image-container.has-mobile-gallery > .main-image { display: none; }
+            .mobile-gallery-carousel {
+                position: absolute;
+                z-index: 1;
+                inset: 0;
+                display: flex;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scroll-snap-type: x mandatory;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-x: contain;
+                scrollbar-width: none;
+            }
+            .mobile-gallery-carousel::-webkit-scrollbar { display: none; }
+            .mobile-gallery-carousel.is-jumping { scroll-behavior: auto !important; }
+            .mobile-gallery-slide {
+                flex: 0 0 100%;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                scroll-snap-align: start;
+                scroll-snap-stop: always;
+            }
+            .mobile-gallery-slide img {
+                width: 100%;
+                height: 100%;
+                display: block;
+                object-fit: contain;
+                user-select: none;
+                -webkit-user-drag: none;
+            }
+            .main-image-container .image-navigation,
+            .main-image-container .image-navigation .nav-zone { pointer-events: none; }
             .nav-indicator { bottom: 15px; }
             .gallery-thumbnails { margin-top: 15px; gap: 8px; }
             .thumbnail { width: 60px; height: 60px; }
