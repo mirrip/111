@@ -2880,3 +2880,13 @@ body.home-menu-open {
     transition: none;
   }
 }
+
+@media (max-width: 760px) {
+  .home-trust-enter,
+  .home-trust-enter.is-enter-pending,
+  .home-trust-enter.is-entered {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
