@@ -1123,8 +1123,8 @@
     updateSidebarPosition();
   }
 
-  // Плавный элитный автоскролл к каталогу при первом открытии страницы
-  function autoScrollToCatalog() {
+  // Короткий плавный сдвиг на ПК скрывает верхнее меню при первом открытии страницы.
+  function autoScrollOnDesktopEntry() {
     if (window.innerWidth <= 1180) return;
     if (window.scrollY > 40) return;
 
@@ -1142,8 +1142,8 @@
 
       if (userScrolled || window.scrollY > 40) return;
 
-      const layoutRect = layout.getBoundingClientRect();
-      const targetY = Math.max(0, layoutRect.top + window.scrollY - 20);
+      const header = document.querySelector('.catalog-site-header');
+      const targetY = header ? header.offsetHeight : 82;
       const startY = window.scrollY;
       const distance = targetY - startY;
       if (distance <= 0) return;
@@ -1188,7 +1188,7 @@
     syncMobileWizardUI();
     renderBooks();
     initStickySidebar();
-    autoScrollToCatalog();
+    autoScrollOnDesktopEntry();
   }
 
   if (document.readyState === 'loading') {
